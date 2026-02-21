@@ -14,7 +14,8 @@
         .page.active { display: block; }
         header { padding: 10px 0; border-bottom: 2px solid var(--point-black); margin-bottom: 20px; }
         h2 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; }
-        .input-under { width:100%; border:none; border-bottom:2px solid black; margin-bottom:15px; padding: 10px 0; font-size: 16px; outline: none; }
+        #calendar { margin-top: 5px; }
+        .input-under { width:100%; border:none; border-bottom:2px solid black; margin-bottom:15px; padding: 10px 0; font-size: 16px; outline: none; box-sizing: border-box; }
         .save-btn { width: 100%; padding: 12px; background: black; color: white; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; }
         .nav-bar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--bg-white); border-top: 2px solid var(--point-black); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
         .nav-item { font-size: 10px; color: #ccc; text-align: center; flex: 1; font-weight: bold; cursor: pointer; }
@@ -31,10 +32,108 @@
         <p style="margin-top: 15px; font-weight: 800; letter-spacing: 3px;">KMSCALENDAR</p>
     </div>
 
-    <div id="tab1" class="page active"><header><h2>Calendar</h2></header><div id="calendar"></div></div>
+    <div id="tab1" class="page active">
+        <header><h2>Calendar</h2></header>
+        <div id="calendar"></div>
+    </div>
 
     <div id="tab2" class="page">
         <header><h2>To-Do List</h2></header>
         <div style="border:2px solid black; padding:15px; margin-bottom:20px; border-radius:10px;">
             <input type="text" id="todoInput" class="input-under" placeholder="오늘 할 일">
-            <div style="display:
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <input type="date" id="todoDate" style="flex:1.2; padding:8px; border:1px solid #ccc; border-radius:5px;">
+                <select id="todoCat" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:5px; background:white;">
+                    <option>일반</option><option>업무</option><option>공부</option>
+                </select>
+            </div>
+            <button onclick="addTodo()" class="save-btn">ADD TASK</button>
+        </div>
+        <ul id="todoList" style="list-style:none; padding:0;"></ul>
+    </div>
+
+    <div id="tab3" class="page">
+        <header><h2>Stat</h2></header>
+        <div id="statDashboard"></div>
+    </div>
+
+    <nav class="nav-bar">
+        <div class="nav-item active" onclick="showTab(1)">CAL</div>
+        <div class="nav-item" onclick="showTab(2)">TODO</div>
+        <div class="nav-item" onclick="showTab(3)">STAT</div>
+    </nav>
+
+    <script>
+        let todos = JSON.parse(localStorage.getItem('kms_todos')) || [];
+
+        window.onload = () => {
+            // 캘린더 초기화
+            const calendarEl = document.getElementById('calendar');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ko',
+                headerToolbar: { left: 'title', right: 'prev,next' }
+            });
+            calendar.render();
+
+            // 스플래시 제거
+            setTimeout(() => {
+                const splash = document.getElementById('splash');
+                splash.style.opacity = '0';
+                setTimeout(() => splash.style.display = 'none', 500);
+            }, 1000);
+
+            renderTodo();
+        };
+
+        function showTab(n) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById('tab' + n).classList.add('active');
+            document.querySelectorAll('.nav-item')[n-1].classList.add('active');
+            if(n === 3) renderStat();
+        }
+
+        function addTodo() {
+            const input = document.getElementById('todoInput');
+            if(!input.value) return;
+            todos.push({ id: Date.now(), text: input.value, done: false });
+            input.value = '';
+            renderTodo();
+        }
+
+        function renderTodo() {
+            localStorage.setItem('kms_todos', JSON.stringify(todos));
+            const list = document.getElementById('todoList');
+            list.innerHTML = todos.map(t => `
+                <li style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid #eee; align-items:center;">
+                    <span onclick="toggleTodo(${t.id})" style="${t.done ? 'text-decoration:line-through; color:#ccc' : ''}">${t.text}</span>
+                    <button onclick="delTodo(${t.id})" style="border:none; background:none; color:red;">삭제</button>
+                </li>
+            `).join('');
+        }
+
+        function toggleTodo(id) {
+            const i = todos.findIndex(t => t.id === id);
+            todos[i].done = !todos[i].done;
+            renderTodo();
+        }
+
+        function delTodo(id) {
+            todos = todos.filter(t => t.id !== id);
+            renderTodo();
+        }
+
+        function renderStat() {
+            const percent = todos.length === 0 ? 0 : Math.round((todos.filter(t => t.done).length / todos.length) * 100);
+            document.getElementById('statDashboard').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">TOTAL PROGRESS</div>
+                    <div class="stat-value">${percent}%</div>
+                    <div class="progress-bar"><div class="progress-inner" style="width:${percent}%"></div></div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
