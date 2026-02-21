@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <style>
-        :root { --point-black: #000000; --bg-white: #ffffff; --light-gray: #f2f2f2; }
+        :root { --point-black: #000000; --bg-white: #ffffff; --text-gray: #888888; }
         body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg-white); color: var(--point-black); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
         /* 1. 스플래시 화면 */
@@ -21,43 +21,53 @@
         }
         .splash-logo { width: 80px; height: 80px; background: var(--point-black); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; }
 
-        /* 2. 레이아웃 */
-        .page { flex: 1; padding: 25px; display: none; overflow-y: auto; padding-bottom: 120px; }
+        /* 2. 레이아웃 & 페이지 */
+        .page { flex: 1; padding: 20px; display: none; overflow-y: auto; padding-bottom: 100px; }
         .page.active { display: block; }
-        header { padding: 20px 0; border-bottom: 2px solid var(--point-black); margin-bottom: 25px; }
-        h2 { margin: 0; font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        header { padding: 10px 0; border-bottom: 2px solid var(--point-black); margin-bottom: 20px; }
+        h2 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* 3. 투두 & 목표 */
-        .input-group { display: flex; gap: 0; margin-bottom: 25px; border: 2px solid var(--point-black); }
-        input, select { flex: 1; padding: 12px; border: none; font-size: 16px; outline: none; }
-        button.add-btn { background: var(--point-black); color: white; border: none; padding: 0 20px; font-weight: bold; cursor: pointer; }
+        /* 3. 캘린더 커스텀 (엑셀 느낌 제거 버전) */
+        #calendar { margin-top: 5px; }
+        .fc { border: none !important; }
+        .fc-theme-standard td, .fc-theme-standard th { border: none !important; } /* 테두리 제거 */
         
-        .item-list { list-style: none; padding: 0; }
-        .item { display: flex; align-items: center; padding: 18px; border-bottom: 1px solid #eee; }
-        .item.done { opacity: 0.3; }
+        /* 요일 헤더 (월화수...) */
+        .fc-col-header-cell { padding: 8px 0 !important; font-size: 12px !important; color: var(--text-gray); font-weight: 700; }
+        
+        /* 날짜 숫자 ( '일' 글자 제거 및 크기 축소 ) */
+        .fc-daygrid-day-top { justify-content: center !important; padding-top: 4px; }
+        .fc-daygrid-day-number { font-size: 13px !important; font-weight: 500; color: #333; padding: 0 !important; text-decoration: none !important; }
+        
+        /* 오늘 날짜 (검정 동그라미 포인트) */
+        .fc-day-today { background: none !important; }
+        .fc-day-today .fc-daygrid-day-number { 
+            background: var(--point-black); color: white !important; 
+            border-radius: 50%; width: 24px; height: 24px; 
+            display: flex; align-items: center; justify-content: center; 
+        }
 
-        /* 4. 캘린더 커스텀 */
-        #calendar { margin-top: 10px; }
-        .fc { --fc-border-color: #eee; --fc-today-bg-color: #f2f2f2; }
-        .fc .fc-toolbar-title { font-size: 18px; font-weight: bold; }
-        .fc .fc-button-primary { background-color: var(--point-black); border: none; }
+        /* 일정 바 스타일 */
+        .fc-event { border: none !important; border-radius: 3px !important; padding: 1px 4px !important; font-size: 10px !important; }
 
-        /* 5. 하단 탭 바 */
+        /* 4. 하단 탭 바 */
         .nav-bar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--bg-white); 
                    border-top: 2px solid var(--point-black); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
-        .nav-item { font-size: 10px; color: #999; text-align: center; flex: 1; text-transform: uppercase; font-weight: bold; }
+        .nav-item { font-size: 10px; color: #ccc; text-align: center; flex: 1; font-weight: bold; }
         .nav-item.active { color: var(--point-black); }
         .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
 
-        /* 6. 일정 추가 모달 (추가됨) */
+        /* 5. 일정 추가 모달 */
         #eventModal {
-            display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 80%;
+            display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 70%;
             background: white; border-top: 3px solid black; z-index: 1000; padding: 25px;
-            box-sizing: border-box; transition: transform 0.3s ease-out;
+            box-sizing: border-box; border-radius: 20px 20px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
         }
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
-        .color-circle { width: 30px; height: 30px; border-radius: 50%; display: inline-block; margin-right: 10px; cursor: pointer; border: 2px solid transparent; }
-        .color-circle.selected { border-color: black; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+        .input-under { width:100%; border:none; border-bottom:2px solid black; margin-bottom:20px; padding: 10px 0; font-size: 18px; outline: none; }
+        .color-circle { width: 25px; height: 25px; border-radius: 50%; display: inline-block; margin-right: 10px; cursor: pointer; border: 2px solid transparent; }
+        .color-circle.selected { border-color: black; scale: 1.2; }
+        .save-btn { width: 100%; padding: 15px; background: black; color: white; border: none; font-weight: bold; border-radius: 10px; font-size: 16px; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -72,67 +82,59 @@
         <div id="calendar"></div>
     </div>
 
-    <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
-    <div id="eventModal">
-        <h3 id="selectedDateText" style="margin-top:0;">날짜 선택됨</h3>
-        <input type="text" id="eventTitle" placeholder="일정 제목" style="width:100%; border-bottom:2px solid black; margin-bottom:20px; font-size:20px;">
-        
-        <div style="margin-bottom:15px; display:flex; align-items:center; justify-content:space-between;">
-            <span>종일</span>
-            <input type="checkbox" id="isAllDay" onchange="toggleTimeInput()" style="flex:none; width:20px; height:20px;">
-        </div>
-
-        <div id="timeInputGroup" style="display:flex; gap:10px; margin-bottom:20px;">
-            <input type="time" id="startTime"> <span>~</span> <input type="time" id="endTime">
-        </div>
-
-        <div style="margin-bottom:20px;">
-            <label>🔔 알림</label>
-            <select id="eventReminder">
-                <option value="none">없음</option>
-                <option value="5">5분 전</option>
-                <option value="30" selected>30분 전</option>
-                <option value="60">1시간 전</option>
-            </select>
-        </div>
-
-        <div style="margin-bottom:25px;">
-            <label style="display:block; margin-bottom:10px;">🎨 색상</label>
-            <div id="colorPicker">
-                <div class="color-circle selected" style="background:#000;" onclick="selectColor('#000', this)"></div>
-                <div class="color-circle" style="background:#ff5b5b;" onclick="selectColor('#ff5b5b', this)"></div>
-                <div class="color-circle" style="background:#5b99ff;" onclick="selectColor('#5b99ff', this)"></div>
-                <div class="color-circle" style="background:#5bff8d;" onclick="selectColor('#5bff8d', this)"></div>
-            </div>
-        </div>
-
-        <button class="add-btn" style="width:100%; height:50px; font-size:18px;" onclick="saveEvent()">SAVE EVENT</button>
-    </div>
-
     <div id="tab2" class="page">
         <header><h2>To-Do List</h2></header>
-        <div class="input-group">
-            <input type="text" id="todoInput" placeholder="Add task...">
-            <button class="add-btn" onclick="addTodo()">ADD</button>
+        <div style="display:flex; border:2px solid black; margin-bottom:20px;">
+            <input type="text" id="todoInput" style="flex:1; padding:10px; border:none; outline:none;" placeholder="할 일 추가...">
+            <button onclick="addTodo()" style="background:black; color:white; border:none; padding:0 15px; font-weight:bold;">ADD</button>
         </div>
-        <ul id="todoList" class="item-list"></ul>
+        <ul id="todoList" style="list-style:none; padding:0;"></ul>
     </div>
 
     <div id="tab3" class="page">
         <header><h2>Goals</h2></header>
-        <div class="input-group">
-            <input type="text" id="goalInput" placeholder="Set new goal...">
-            <button class="add-btn" onclick="addGoal()">SET</button>
+        <div style="display:flex; border:2px solid black; margin-bottom:20px;">
+            <input type="text" id="goalInput" style="flex:1; padding:10px; border:none; outline:none;" placeholder="목표 설정...">
+            <button onclick="addGoal()" style="background:black; color:white; border:none; padding:0 15px; font-weight:bold;">SET</button>
         </div>
-        <ul id="goalList" class="item-list"></ul>
+        <ul id="goalList" style="list-style:none; padding:0;"></ul>
     </div>
 
     <div id="tab4" class="page">
         <header><h2>Achieve</h2></header>
-        <div style="text-align: center; padding: 60px 20px;">
-            <h1 style="font-size: 80px; margin: 0; letter-spacing: -3px;" id="percentText">0%</h1>
-            <p style="font-weight: bold; letter-spacing: 1px;" id="statMsg">KEEP GOING</p>
+        <div style="text-align: center; padding: 50px 0;">
+            <h1 id="percentText" style="font-size: 80px; margin:0;">0%</h1>
+            <p id="statMsg" style="font-weight:bold;">KEEP GOING</p>
         </div>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
+    <div id="eventModal">
+        <p id="selectedDateText" style="color:#888; margin-bottom:10px; font-weight:bold;"></p>
+        <input type="text" id="eventTitle" placeholder="일정 제목을 입력하세요" class="input-under">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <span>종일</span>
+            <input type="checkbox" id="isAllDay" onchange="toggleTime()" style="width:20px; height:20px;">
+        </div>
+
+        <div id="timeBox" style="display:flex; gap:10px; align-items:center; margin-bottom:20px;">
+            <input type="time" id="startTime" style="padding:5px; border-radius:5px; border:1px solid #ccc;">
+            <span>~</span>
+            <input type="time" id="endTime" style="padding:5px; border-radius:5px; border:1px solid #ccc;">
+        </div>
+
+        <div style="margin-bottom:25px;">
+            <p style="font-size:12px; color:#888; margin-bottom:10px;">🎨 테마 색상</p>
+            <div id="colorPicker">
+                <div class="color-circle selected" style="background:#000;" onclick="selectColor('#000', this)"></div>
+                <div class="color-circle" style="background:#FF5B5B;" onclick="selectColor('#FF5B5B', this)"></div>
+                <div class="color-circle" style="background:#5B99FF;" onclick="selectColor('#5B99FF', this)"></div>
+                <div class="color-circle" style="background:#5BFF8D;" onclick="selectColor('#5BFF8D', this)"></div>
+            </div>
+        </div>
+
+        <button class="save-btn" onclick="saveEvent()">SAVE EVENT</button>
     </div>
 
     <nav class="nav-bar">
@@ -153,27 +155,30 @@
             renderTodos();
             renderGoals();
             setTimeout(() => {
-                document.getElementById('splash').style.opacity = '0';
-                setTimeout(() => document.getElementById('splash').style.display = 'none', 500);
-            }, 1200);
+                const splash = document.getElementById('splash');
+                splash.style.opacity = '0';
+                setTimeout(() => splash.style.display = 'none', 500);
+            }, 1000);
         };
 
         function initCalendar() {
-            var calendarEl = document.getElementById('calendar');
+            const calendarEl = document.getElementById('calendar');
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 locale: 'ko',
                 height: 'auto',
-                headerToolbar: { left: 'prev', center: 'title', right: 'next' },
+                fixedWeekCount: false,
+                headerToolbar: { left: 'title', center: '', right: 'prev,next' },
+                // 날짜에서 '일' 제거
+                dayCellContent: (info) => info.date.getDate(),
+                // 요일 한글 유지
+                dayHeaderContent: (arg) => arg.date.toLocaleDateString('ko-KR', { weekday: 'short' }).replace('.', ''),
                 events: events,
-                dateClick: function(info) {
-                    openModal(info.dateStr);
-                }
+                dateClick: (info) => openModal(info.dateStr)
             });
             calendar.render();
         }
 
-        // 모달 제어 로직
         function openModal(date) {
             selectedDate = date;
             document.getElementById('selectedDateText').innerText = date;
@@ -186,9 +191,10 @@
             document.getElementById('modalOverlay').style.display = 'none';
         }
 
-        function toggleTimeInput() {
+        function toggleTime() {
             const isAllDay = document.getElementById('isAllDay').checked;
-            document.getElementById('timeInputGroup').style.display = isAllDay ? 'none' : 'flex';
+            document.getElementById('timeBox').style.opacity = isAllDay ? '0.3' : '1';
+            document.getElementById('timeBox').style.pointerEvents = isAllDay ? 'none' : 'auto';
         }
 
         function selectColor(color, el) {
@@ -199,16 +205,13 @@
 
         function saveEvent() {
             const title = document.getElementById('eventTitle').value;
-            if(!title) return alert('제목을 입력해주세요!');
-
+            if(!title) return alert('제목을 입력하세요!');
+            
             const isAllDay = document.getElementById('isAllDay').checked;
-            const startTime = document.getElementById('startTime').value;
-            const endTime = document.getElementById('endTime').value;
-
             const newEvent = {
                 title: title,
-                start: isAllDay ? selectedDate : selectedDate + 'T' + startTime,
-                end: isAllDay ? selectedDate : selectedDate + 'T' + endTime,
+                start: isAllDay ? selectedDate : selectedDate + 'T' + document.getElementById('startTime').value,
+                end: isAllDay ? selectedDate : selectedDate + 'T' + document.getElementById('endTime').value,
                 allDay: isAllDay,
                 backgroundColor: selectedColor,
                 borderColor: selectedColor
@@ -217,13 +220,10 @@
             events.push(newEvent);
             localStorage.setItem('kms_events', JSON.stringify(events));
             calendar.addEvent(newEvent);
-            
-            // 초기화 후 닫기
             document.getElementById('eventTitle').value = '';
             closeModal();
         }
 
-        // 탭 전환 & 투두 로직 (기존과 동일)
         function showTab(num) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -232,6 +232,7 @@
             if(num === 4) updateStats();
         }
 
+        /* To-Do & Goal 로직 (기존 유지) */
         let todos = JSON.parse(localStorage.getItem('kms_todos')) || [];
         let goals = JSON.parse(localStorage.getItem('kms_goals')) || [];
 
@@ -243,52 +244,35 @@
             saveAndRenderTodo();
         }
 
-        function addGoal() {
-            const input = document.getElementById('goalInput');
-            if(!input.value) return;
-            goals.push({ text: input.value });
-            input.value = '';
-            saveAndRenderGoal();
-        }
-
         function saveAndRenderTodo() {
             localStorage.setItem('kms_todos', JSON.stringify(todos));
-            renderTodos();
-        }
-
-        function renderTodos() {
             const list = document.getElementById('todoList');
             list.innerHTML = todos.map((t, i) => `
-                <li class="item ${t.done ? 'done' : ''}">
-                    <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTodo(${i})">
+                <li style="display:flex; align-items:center; padding:15px; border-bottom:1px solid #eee; ${t.done?'opacity:0.3':''}">
+                    <input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo(${i})" style="margin-right:10px;">
                     <span>${t.text}</span>
                 </li>
             `).join('');
         }
 
-        function toggleTodo(i) {
-            todos[i].done = !todos[i].done;
-            saveAndRenderTodo();
-        }
+        function toggleTodo(i) { todos[i].done = !todos[i].done; saveAndRenderTodo(); }
 
-        function saveAndRenderGoal() {
+        function addGoal() {
+            const input = document.getElementById('goalInput');
+            if(!input.value) return;
+            goals.push({ text: input.value });
+            input.value = '';
             localStorage.setItem('kms_goals', JSON.stringify(goals));
             renderGoals();
         }
 
         function renderGoals() {
-            document.getElementById('goalList').innerHTML = goals.map(g => `
-                <li class="item">▪ ${g.text}</li>
-            `).join('');
+            document.getElementById('goalList').innerHTML = goals.map(g => `<li style="padding:15px; border-bottom:1px solid #eee;">▪ ${g.text}</li>`).join('');
         }
 
         function updateStats() {
-            if(todos.length === 0) {
-                document.getElementById('percentText').innerText = "0%";
-                return;
-            }
-            const doneCount = todos.filter(t => t.done).length;
-            const percent = Math.round((doneCount / todos.length) * 100);
+            if(todos.length === 0) return;
+            const percent = Math.round((todos.filter(t => t.done).length / todos.length) * 100);
             document.getElementById('percentText').innerText = percent + "%";
             document.getElementById('statMsg').innerText = percent === 100 ? 'PERFECT' : 'KEEP GOING';
         }
