@@ -4,25 +4,64 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>KMScalendar</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <style>
         :root { --point-black: #000000; --bg-white: #ffffff; --text-gray: #888888; --light-gray: #f4f4f4; }
         body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg-white); color: var(--point-black); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        #splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-white); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; transition: opacity 0.5s ease; }
+        
+        /* 1. 스플래시 화면 */
+        #splash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-white); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
         .splash-logo { width: 80px; height: 80px; background: var(--point-black); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; }
+
+        /* 2. 레이아웃 & 페이지 */
         .page { flex: 1; padding: 20px; display: none; overflow-y: auto; padding-bottom: 120px; }
         .page.active { display: block; }
         header { padding: 10px 0; border-bottom: 2px solid var(--point-black); margin-bottom: 20px; }
-        h2 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; }
+        h2 { margin: 0; font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+
+        /* 3. 캘린더 커스텀 (엑셀 느낌 제거 버전) */
         #calendar { margin-top: 5px; }
-        .input-under { width:100%; border:none; border-bottom:2px solid black; margin-bottom:15px; padding: 10px 0; font-size: 16px; outline: none; box-sizing: border-box; }
-        .save-btn { width: 100%; padding: 12px; background: black; color: white; border: none; font-weight: bold; border-radius: 8px; cursor: pointer; }
-        .nav-bar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--bg-white); border-top: 2px solid var(--point-black); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+        .fc { border: none !important; }
+        .fc-theme-standard td, .fc-theme-standard th { border: none !important; }
+        .fc-col-header-cell { padding: 8px 0 !important; font-size: 12px !important; color: var(--text-gray); font-weight: 700; }
+        .fc-daygrid-day-top { justify-content: center !important; padding-top: 4px; }
+        .fc-daygrid-day-number { font-size: 13px !important; font-weight: 500; color: #333; padding: 0 !important; text-decoration: none !important; }
+        .fc-day-today { background: none !important; }
+        .fc-day-today .fc-daygrid-day-number { 
+            background: var(--point-black); color: white !important; 
+            border-radius: 50%; width: 24px; height: 24px; 
+            display: flex; align-items: center; justify-content: center; 
+        }
+        .fc-event { border: none !important; border-radius: 3px !important; padding: 1px 4px !important; font-size: 10px !important; }
+
+        /* 4. 공통 스타일 */
+        .input-under { width:100%; border:none; border-bottom:2px solid black; margin-bottom:20px; padding: 10px 0; font-size: 16px; outline: none; box-sizing: border-box;}
+        .save-btn { width: 100%; padding: 12px; background: black; color: white; border: none; font-weight: bold; border-radius: 8px; font-size: 14px; cursor: pointer; }
+        
+        /* 5. 하단 탭 바 */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--bg-white); 
+                   border-top: 2px solid var(--point-black); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
         .nav-item { font-size: 10px; color: #ccc; text-align: center; flex: 1; font-weight: bold; cursor: pointer; }
         .nav-item.active { color: var(--point-black); }
-        .stat-card { background: #f9f9f9; padding: 20px; border-radius: 15px; margin-bottom: 15px; border-left: 5px solid black; }
-        .progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
-        .progress-inner { height: 100%; background: black; transition: width 0.5s ease; }
+        .nav-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+
+        /* 6. 모달 */
+        #eventModal {
+            display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 70%;
+            background: white; border-top: 3px solid black; z-index: 1000; padding: 25px;
+            box-sizing: border-box; border-radius: 20px 20px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
+        }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 999; }
+        .color-circle { width: 25px; height: 25px; border-radius: 50%; display: inline-block; margin-right: 10px; cursor: pointer; border: 2px solid transparent; }
+        .color-circle.selected { border-color: black; scale: 1.2; }
     </style>
 </head>
 <body>
@@ -39,100 +78,271 @@
 
     <div id="tab2" class="page">
         <header><h2>To-Do List</h2></header>
+        
+        <div style="margin-bottom: 15px; background: var(--light-gray); padding: 12px; border-radius: 10px;">
+            <p style="font-size: 11px; font-weight: bold; margin: 0 0 8px 0;">🏷️ 카테고리 추가</p>
+            <div style="display: flex; gap: 5px;">
+                <input type="text" id="newCatInput" placeholder="새 카테고리..." style="flex:1; font-size:12px; padding:8px; border:1px solid #ddd; border-radius:5px; outline:none;">
+                <button onclick="addCategory()" style="background:black; color:white; border:none; padding:0 15px; font-size:11px; border-radius:5px; font-weight:bold;">추가</button>
+            </div>
+        </div>
+
         <div style="border:2px solid black; padding:15px; margin-bottom:20px; border-radius:10px;">
-            <input type="text" id="todoInput" class="input-under" placeholder="오늘 할 일">
+            <input type="text" id="todoInput" class="input-under" style="margin-bottom:10px;" placeholder="할 일을 입력하세요">
             <div style="display:flex; gap:10px; margin-bottom:15px;">
-                <input type="date" id="todoDate" style="flex:1.2; padding:8px; border:1px solid #ccc; border-radius:5px;">
-                <select id="todoCat" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:5px; background:white;">
-                    <option>일반</option><option>업무</option><option>공부</option>
-                </select>
+                <input type="date" id="todoDate" style="flex:1.2; border:1px solid #ccc; padding:8px; font-size:12px; border-radius:5px;">
+                <select id="todoCat" style="flex:1; border:1px solid #ccc; padding:8px; font-size:12px; border-radius:5px; background:white;"></select>
             </div>
             <button onclick="addTodo()" class="save-btn">ADD TASK</button>
         </div>
+
+        <div id="catFilters" style="margin-bottom:15px; display:flex; gap:8px; overflow-x:auto; padding-bottom:8px;"></div>
+
         <ul id="todoList" style="list-style:none; padding:0;"></ul>
     </div>
 
     <div id="tab3" class="page">
-        <header><h2>Stat</h2></header>
-        <div id="statDashboard"></div>
+        <header><h2>Goals</h2></header>
+        <div style="display:flex; border:2px solid black; margin-bottom:20px;">
+            <input type="text" id="goalInput" style="flex:1; padding:10px; border:none; outline:none;" placeholder="목표 설정...">
+            <button onclick="addGoal()" style="background:black; color:white; border:none; padding:0 15px; font-weight:bold;">SET</button>
+        </div>
+        <ul id="goalList" style="list-style:none; padding:0;"></ul>
+    </div>
+
+    <div id="tab4" class="page">
+        <header><h2>Achieve</h2></header>
+        <div style="text-align: center; padding: 50px 0;">
+            <h1 id="percentText" style="font-size: 80px; margin:0;">0%</h1>
+            <p id="statMsg" style="font-weight:bold;">KEEP GOING</p>
+        </div>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay" onclick="closeModal()"></div>
+    <div id="eventModal">
+        <p id="selectedDateText" style="color:#888; margin-bottom:10px; font-weight:bold;"></p>
+        <input type="text" id="eventTitle" placeholder="일정 제목을 입력하세요" class="input-under">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <span>종일</span>
+            <input type="checkbox" id="isAllDay" onchange="toggleTime()" style="width:20px; height:20px;">
+        </div>
+        <div id="timeBox" style="display:flex; gap:10px; align-items:center; margin-bottom:20px;">
+            <input type="time" id="startTime" style="padding:5px; border-radius:5px; border:1px solid #ccc;">
+            <span>~</span>
+            <input type="time" id="endTime" style="padding:5px; border-radius:5px; border:1px solid #ccc;">
+        </div>
+        <div style="margin-bottom:25px;">
+            <p style="font-size:12px; color:#888; margin-bottom:10px;">🎨 테마 색상</p>
+            <div id="colorPicker">
+                <div class="color-circle selected" style="background:#000;" onclick="selectColor('#000', this)"></div>
+                <div class="color-circle" style="background:#FF5B5B;" onclick="selectColor('#FF5B5B', this)"></div>
+                <div class="color-circle" style="background:#5B99FF;" onclick="selectColor('#5B99FF', this)"></div>
+                <div class="color-circle" style="background:#5BFF8D;" onclick="selectColor('#5BFF8D', this)"></div>
+            </div>
+        </div>
+        <button class="save-btn" onclick="saveEvent()">SAVE EVENT</button>
     </div>
 
     <nav class="nav-bar">
-        <div class="nav-item active" onclick="showTab(1)">CAL</div>
-        <div class="nav-item" onclick="showTab(2)">TODO</div>
-        <div class="nav-item" onclick="showTab(3)">STAT</div>
+        <div class="nav-item active" onclick="showTab(1)"> <span class="nav-icon">🗓</span> CAL </div>
+        <div class="nav-item" onclick="showTab(2)"> <span class="nav-icon">✔</span> TODO </div>
+        <div class="nav-item" onclick="showTab(3)"> <span class="nav-icon">🎯</span> GOAL </div>
+        <div class="nav-item" onclick="showTab(4)"> <span class="nav-icon">📈</span> STAT </div>
     </nav>
 
     <script>
+        let calendar;
+        let selectedDate = '';
+        let selectedColor = '#000';
+        let events = JSON.parse(localStorage.getItem('kms_events')) || [];
         let todos = JSON.parse(localStorage.getItem('kms_todos')) || [];
+        let goals = JSON.parse(localStorage.getItem('kms_goals')) || [];
+        let categories = JSON.parse(localStorage.getItem('kms_categories')) || ['일반', '업무', '공부'];
 
         window.onload = () => {
-            // 캘린더 초기화
-            const calendarEl = document.getElementById('calendar');
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                locale: 'ko',
-                headerToolbar: { left: 'title', right: 'prev,next' }
-            });
-            calendar.render();
-
-            // 스플래시 제거
+            initCalendar();
+            renderCategoryUI();
+            saveAndRenderTodo();
+            renderGoals();
             setTimeout(() => {
                 const splash = document.getElementById('splash');
                 splash.style.opacity = '0';
                 setTimeout(() => splash.style.display = 'none', 500);
             }, 1000);
-
-            renderTodo();
         };
 
-        function showTab(n) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            document.getElementById('tab' + n).classList.add('active');
-            document.querySelectorAll('.nav-item')[n-1].classList.add('active');
-            if(n === 3) renderStat();
+        /* --- 캘린더 로직 --- */
+        function initCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'ko',
+                height: 'auto',
+                fixedWeekCount: false,
+                headerToolbar: { left: 'title', center: '', right: 'prev,next' },
+                dayCellContent: (info) => info.date.getDate(),
+                dayHeaderContent: (arg) => arg.date.toLocaleDateString('ko-KR', { weekday: 'short' }).replace('.', ''),
+                events: events,
+                dateClick: (info) => openModal(info.dateStr)
+            });
+            calendar.render();
+        }
+
+        function openModal(date) {
+            selectedDate = date;
+            document.getElementById('selectedDateText').innerText = date;
+            document.getElementById('eventModal').style.display = 'block';
+            document.getElementById('modalOverlay').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('eventModal').style.display = 'none';
+            document.getElementById('modalOverlay').style.display = 'none';
+        }
+
+        function saveEvent() {
+            const title = document.getElementById('eventTitle').value;
+            if(!title) return alert('제목을 입력하세요!');
+            const isAllDay = document.getElementById('isAllDay').checked;
+            const newEvent = {
+                title: title,
+                start: isAllDay ? selectedDate : selectedDate + 'T' + document.getElementById('startTime').value,
+                end: isAllDay ? selectedDate : selectedDate + 'T' + document.getElementById('endTime').value,
+                allDay: isAllDay,
+                backgroundColor: selectedColor, borderColor: selectedColor
+            };
+            events.push(newEvent);
+            localStorage.setItem('kms_events', JSON.stringify(events));
+            calendar.addEvent(newEvent);
+            document.getElementById('eventTitle').value = '';
+            closeModal();
+        }
+
+        function toggleTime() {
+            const isAllDay = document.getElementById('isAllDay').checked;
+            document.getElementById('timeBox').style.opacity = isAllDay ? '0.3' : '1';
+            document.getElementById('timeBox').style.pointerEvents = isAllDay ? 'none' : 'auto';
+        }
+
+        function selectColor(color, el) {
+            selectedColor = color;
+            document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        /* --- 투두 & 카테고리 로직 --- */
+        function addCategory() {
+            const input = document.getElementById('newCatInput');
+            const val = input.value.trim();
+            if (!val) return;
+            if (categories.includes(val)) return alert('이미 존재하는 카테고리입니다!');
+            categories.push(val);
+            localStorage.setItem('kms_categories', JSON.stringify(categories));
+            input.value = '';
+            renderCategoryUI();
+        }
+
+        function deleteCategory(cat) {
+            if (cat === '일반') return;
+            if (confirm(`'${cat}' 카테고리를 삭제하시겠습니까?`)) {
+                categories = categories.filter(c => c !== cat);
+                localStorage.setItem('kms_categories', JSON.stringify(categories));
+                renderCategoryUI();
+            }
+        }
+
+        function renderCategoryUI() {
+            const select = document.getElementById('todoCat');
+            select.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            
+            const filterBox = document.getElementById('catFilters');
+            let html = `<button onclick="saveAndRenderTodo('전체')" style="background:black; color:white; border:none; padding:6px 12px; font-size:11px; border-radius:15px; white-space:nowrap;">전체</button>`;
+            html += categories.map(c => `
+                <button onclick="saveAndRenderTodo('${c}')" style="background:#eee; border:none; padding:6px 12px; font-size:11px; border-radius:15px; white-space:nowrap; display:flex; align-items:center;">
+                    ${c} <span onclick="event.stopPropagation(); deleteCategory('${c}')" style="margin-left:5px; color:#ff5b5b; font-weight:bold;">×</span>
+                </button>
+            `).join('');
+            filterBox.innerHTML = html;
         }
 
         function addTodo() {
             const input = document.getElementById('todoInput');
+            const date = document.getElementById('todoDate').value;
+            const cat = document.getElementById('todoCat').value;
             if(!input.value) return;
-            todos.push({ id: Date.now(), text: input.value, done: false });
+            
+            todos.push({
+                id: Date.now(),
+                text: input.value,
+                date: date || '기한 없음',
+                category: cat,
+                done: false
+            });
             input.value = '';
-            renderTodo();
+            saveAndRenderTodo();
         }
 
-        function renderTodo() {
+        function deleteTodo(id) {
+            todos = todos.filter(t => t.id !== id);
+            saveAndRenderTodo();
+        }
+
+        function toggleTodo(id) {
+            const idx = todos.findIndex(t => t.id === id);
+            todos[idx].done = !todos[idx].done;
+            saveAndRenderTodo();
+        }
+
+        function saveAndRenderTodo(filter = '전체') {
             localStorage.setItem('kms_todos', JSON.stringify(todos));
             const list = document.getElementById('todoList');
-            list.innerHTML = todos.map(t => `
-                <li style="display:flex; justify-content:space-between; padding:15px; border-bottom:1px solid #eee; align-items:center;">
-                    <span onclick="toggleTodo(${t.id})" style="${t.done ? 'text-decoration:line-through; color:#ccc' : ''}">${t.text}</span>
-                    <button onclick="delTodo(${t.id})" style="border:none; background:none; color:red;">삭제</button>
+            const filtered = filter === '전체' ? todos : todos.filter(t => t.category === filter);
+
+            list.innerHTML = filtered.map(t => `
+                <li style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid #eee; ${t.done?'opacity:0.3':''}">
+                    <div style="display:flex; align-items:center;">
+                        <input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo(${t.id})" style="margin-right:12px; width:18px; height:18px; accent-color:black;">
+                        <div>
+                            <div style="font-weight:bold; font-size:14px; ${t.done?'text-decoration:line-through':''}">${t.text}</div>
+                            <div style="font-size:10px; color:#888; margin-top:2px;">🏷️ ${t.category} | 📅 ${t.date}</div>
+                        </div>
+                    </div>
+                    <button onclick="deleteTodo(${t.id})" style="background:none; border:none; color:#ff5b5b; font-size:12px; font-weight:bold;">삭제</button>
                 </li>
             `).join('');
         }
 
-        function toggleTodo(id) {
-            const i = todos.findIndex(t => t.id === id);
-            todos[i].done = !todos[i].done;
-            renderTodo();
+        /* --- 목표 로직 --- */
+        function addGoal() {
+            const input = document.getElementById('goalInput');
+            if(!input.value) return;
+            goals.push({ text: input.value });
+            input.value = '';
+            localStorage.setItem('kms_goals', JSON.stringify(goals));
+            renderGoals();
         }
 
-        function delTodo(id) {
-            todos = todos.filter(t => t.id !== id);
-            renderTodo();
+        function renderGoals() {
+            document.getElementById('goalList').innerHTML = goals.map(g => `<li style="padding:15px; border-bottom:1px solid #eee;">▪ ${g.text}</li>`).join('');
         }
 
-        function renderStat() {
-            const percent = todos.length === 0 ? 0 : Math.round((todos.filter(t => t.done).length / todos.length) * 100);
-            document.getElementById('statDashboard').innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-label">TOTAL PROGRESS</div>
-                    <div class="stat-value">${percent}%</div>
-                    <div class="progress-bar"><div class="progress-inner" style="width:${percent}%"></div></div>
-                </div>
-            `;
+        /* --- 기타 유틸 --- */
+        function showTab(num) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById('tab' + num).classList.add('active');
+            document.querySelectorAll('.nav-item')[num-1].classList.add('active');
+            if(num === 4) updateStats();
+        }
+
+        function updateStats() {
+            if(todos.length === 0) {
+                document.getElementById('percentText').innerText = "0%";
+                return;
+            }
+            const percent = Math.round((todos.filter(t => t.done).length / todos.length) * 100);
+            document.getElementById('percentText').innerText = percent + "%";
+            document.getElementById('statMsg').innerText = percent === 100 ? 'PERFECT' : 'KEEP GOING';
         }
     </script>
 </body>
